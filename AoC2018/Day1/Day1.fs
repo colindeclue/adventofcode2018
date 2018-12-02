@@ -8,6 +8,18 @@ module Day1 =
             yield sr.ReadLine()
     }
 
+    let findMatch (set:byref<Set<int>>) (changes:seq<int>) (sum:byref<int>) =
+        let mutable answer = 0
+        for change in changes do
+            sum <- sum + change
+            if(set.Contains(sum)) then 
+                answer <- sum
+            else 
+                set <- set.Add(sum)
+        match answer with
+            | 0 -> (true, sum)
+            | _ -> (false, answer)
+            
     let shouldContinue (set:Set<int>) (i:int) (changes:List<int>) =
         set.Contains(changes.[i])
 
@@ -17,18 +29,15 @@ module Day1 =
     let solution(input:string) = 
         let mutable set = Set.empty.Add(0)
         let mutable frequency = 0
-        let changes = readLines input |> Seq.map(int) |> Seq.toList
+        let changes = readLines input |> Seq.map(int)
         let mutable keepGoing = true
-        let mutable count = 1
+        let mutable answer = 0
+
         while keepGoing do
-            count <- count + 1
-            for change in changes do
-                frequency <- frequency + change
-                if(set.Contains frequency) then
-                    keepGoing <- false
-                    printfn "%d" frequency
-                else
-                    set <- set.Add(frequency)
+            let stillHappens, sum = findMatch &set changes &frequency
+            if(set.Contains(answer)) then
+                keepGoing <- false
+            
         
-        count
+        answer
                 
