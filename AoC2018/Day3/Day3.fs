@@ -53,27 +53,10 @@ module Day3 =
 
     let anyCollide (rects) (rect) =
         rects |> Seq.exists (Collides rect)
-    let maxXs (point) (size) (other) (otherSize) =
-        seq [xMax point size; xMax other otherSize]
-     
-    let xStarts (point) (size) (other) (otherSize) =
-        seq [fst point; fst other]
-
-    let maxYs (point) (size) (other) (otherSize) =
-        seq [yMax point size; yMax other otherSize]
-
-    let yStarts (point) (size) (other) (otherSize) =
-        seq [snd point; snd other]
 
     let GetRects (input) =
         (GetId input, GetOffset input, GetSize input)
     
-    let GetRectsAndPoints (input) =
-        let rect = (GetId input, GetOffset input, GetSize input)
-        (GetId input, GetOffset input, GetSize input, enumerate (tail rect))
-
-    let countItem (seq) (x) =  seq |> Seq.filter ((=) x) |> Seq.length
-
     let enumerate (point,size) =
         seq {
             for x = (fst point) to (fst point) + (fst size) - 1 do
@@ -90,23 +73,6 @@ module Day3 =
             else
                 uniques <- uniques.Add(p)
         result.Count
-
-    let exceptWithDuplicates (first) (second) =
-        first |> Seq.filter (fun x -> not (Seq.contains x second))
-        
-    let uniqueRec (rects) (allPoints) =
-        let allPointsLength = allPoints |> Seq.length
-        let mutable answer = ""
-        let except = exceptWithDuplicates allPoints
-        for rect in rects do
-            let ourPoints = (last rect)
-            let without = except ourPoints
-            let withoutCount = without |> Seq.length
-            let ourCount = ourPoints |> Seq.length
-            if allPointsLength - ourCount = withoutCount then
-                answer <- (head rect)
-        
-        answer
 
     let head (tup) =
         match tup with
