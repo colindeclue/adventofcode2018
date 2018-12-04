@@ -57,7 +57,26 @@ module Day4 =
         let answer = days |> Seq.map GetGuardAndAsleepMinutes |> Seq.groupBy fst |> Seq.map combine |> Seq.sortByDescending (fun x -> snd x |> Seq.length) |> Seq.head
         (fst answer |> int) * (snd answer |> Seq.maxBy (fun x -> countItem (snd answer) x))
 
+    let things (input) =
+        let seq = snd input
+        let max = seq |> Seq.maxBy (fun x -> countItem seq x)
+        let count = countItem seq max
+        (fst input, max, count)
+
+    
+    let last (tuple) =
+        match tuple with
+        | (a,b,c) -> c
+    
+    let first (tuple) =
+        match tuple with
+        | (a,b,c) -> a
+
+    let second (tuple) =
+        match tuple with
+        | (a,b,c) -> b
+
     let part2 (input) =
         let days = input |> readLines |> Seq.map GetLine |> Seq.sortBy fst |> Seq.groupBy (fun x -> fst x |> getDate)
-        let answer = days |> Seq.map GetGuardAndAsleepMinutes |> Seq.groupBy fst |> Seq.map combine |> Seq.filter (fun x -> (snd x |> Seq.length) > 0) |> Seq.sortByDescending (fun x -> snd x |> Seq.maxBy (fun y -> countItem (snd x) y)) |> Seq.head
-        (fst answer |> int), (snd answer |> Seq.maxBy (fun x -> countItem (snd answer) x))
+        let answer = days |> Seq.map GetGuardAndAsleepMinutes |> Seq.groupBy fst |> Seq.map combine |> Seq.filter (fun x -> (snd x |> Seq.length) > 0) |> Seq.map things |> Seq.sortByDescending last |> Seq.head
+        (first answer |> int) * (second answer)
