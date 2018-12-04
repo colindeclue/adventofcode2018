@@ -9,10 +9,10 @@ module Day2 =
             yield sr.ReadLine()
     }
 
-    let countChar (word) (x) =  word |> Seq.filter ((=) x) |> Seq.length
+    let countItem (seq) (x) =  seq |> Seq.filter ((=) x) |> Seq.length
     
     let acceptWord (count) (word) = 
-        let counts = word |> Seq.map (countChar word)
+        let counts = word |> Seq.map (countItem word)
         counts |> Seq.exists ((=) count)
 
     let acceptWords (word1:string) (word2:string) =
