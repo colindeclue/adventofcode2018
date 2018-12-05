@@ -1,7 +1,7 @@
 namespace AoC2018
 open System
 open System.IO
-open System.Collections.Generic
+open System.Collections
 
 module Day5 =
     type ImmutableStack<'T> =
@@ -45,50 +45,20 @@ module Day5 =
         (input.[0] |> Char.ToUpper = input.[1] ||
          input.[1] |> Char.ToUpper = input.[0])
 
-
-    let getRemoveCharacters (input:string) = 
-        Seq.windowed 2 input |> Seq.filter compareChars |> Seq.map String
-
-    let reduceCollisions (input:string) =
-        let removeCharacters = input |> getRemoveCharacters
-        let mutable output:string = input
-        if Seq.isEmpty removeCharacters then
-            output <- input
+    let reducer (stack:ImmutableStack<char>) (char) =
+        if stack.IEmpty then
+            stack.Push(char)
         else
-            for replace in removeCharacters do
-                output <- output.Replace(replace, "")
-        output
-
-    let fullReduce (input:string) =
-        let mutable prevLength = input.Length
-        let mutable reduce = reduceCollisions input
-        let mutable currentLength = reduce.Length
-        while prevLength <> currentLength do
-            prevLength <- reduce.Length
-            reduce <- reduceCollisions reduce
-            currentLength <- reduce.Length
-        
-        reduce
+            let top = stack.Peek()
+            if not (compareChars [|top;char|]) then
+                stack.Push(char)
+            else
+                stack.Top()
 
     let fullReduceFaster word =
-        let mutable stack = ImmutableStack.Empty
+        let answer = Seq.fold reducer ImmutableStack.Empty word
 
-        for char in word do
-            if stack.IEmpty then
-                stack <- stack.Push(char)
-            else
-                let top = stack.Peek()
-                if not (compareChars [|top; char|]) then
-                    stack <- stack.Push(char)
-                else
-                    let _,stack2 = stack.Pop()
-                    stack <- stack2
-                    
-                
-        stack.All() |> List.length
-
-    let part1 (input) =
-        readLine input |> fullReduce |> Seq.length
+        answer.All() |> List.length
 
     let part1Fast (input) =
         readLine input |> fullReduceFaster
