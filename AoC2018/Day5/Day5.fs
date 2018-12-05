@@ -4,11 +4,41 @@ open System.IO
 open System.Collections.Generic
 
 module Day5 =
-    let readLines (filePath:string) = seq {
+    type ImmutableStack<'T> =
+        | Empty 
+        | Stack of 'T * ImmutableStack<'T>
+
+        member s.Push x = Stack(x, s)
+
+        member s.Peek() =
+            match s with
+            | Empty -> failwith "Underflow"
+            | Stack(t,_) -> t
+
+        member s.Pop() = 
+            match s with
+            | Empty -> failwith "Underflow"
+            | Stack(t,st) -> t,st.Top()
+
+        member s.Top() = 
+            match s with
+            | Empty -> failwith "Contain no elements"
+            | Stack(_,st) -> st
+
+        member s.IEmpty = 
+            match s with
+            | Empty -> true
+            | _ -> false
+
+        member s.All() = 
+            let rec loop acc = function
+            | Empty -> acc
+            | Stack(t,st) -> loop (t::acc) st
+            loop [] s
+
+    let readLine (filePath:string) =
         use sr = new StreamReader(filePath)
-        while not sr.EndOfStream do
-            yield sr.ReadLine()
-    }
+        sr.ReadLine()
 
     let compareChars (input:char[]) =
         input.[0] <> input.[1] &&
@@ -40,47 +70,34 @@ module Day5 =
         
         reduce
 
-    
-
-    let peek list =
-        Seq.head list
-
-    let pop list =
-        match list with
-        | top::rest ->
-            (top,rest)
-        | [] -> failwith "Stack underflow"
-
-    let push x list =
-        x::list
-
     let fullReduceFaster word =
-        let stack:Stack<char> = new Stack<char>()
+        let mutable stack = ImmutableStack.Empty
 
         for char in word do
-            if Seq.length stack = 0 then
-                stack.Push(char)
+            if stack.IEmpty then
+                stack <- stack.Push(char)
             else
                 let top = stack.Peek()
                 if not (compareChars [|top; char|]) then
-                    stack.Push(char)
+                    stack <- stack.Push(char)
                 else
-                    stack.Pop() |> ignore
+                    let _,stack2 = stack.Pop()
+                    stack <- stack2
                     
                 
-        stack.Count
+        stack.All() |> List.length
 
     let part1 (input) =
-        readLines input |> Seq.head |> fullReduce |> Seq.length
+        readLine input |> fullReduce |> Seq.length
 
     let part1Fast (input) =
-        readLines input |> Seq.head |> fullReduceFaster
+        readLine input |> fullReduceFaster
 
     let withoutChar (input:string) (c:char) =
-        input.Replace(c,' ').Replace(c |> Char.ToUpper,' ').Replace(" ","") |> fullReduce |> Seq.length
+        input.Replace(c,' ').Replace(c |> Char.ToUpper,' ').Replace(" ","") |> fullReduceFaster
 
     let part2 (input) =
-        let polymer = readLines input |> Seq.head
+        let polymer = readLine input
         let without = withoutChar polymer
         let counts = ['a'..'z'] |> Seq.map without
         Seq.min counts
