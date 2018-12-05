@@ -55,10 +55,11 @@ module Day5 =
             else
                 stack.Top()
 
-    let fullReduceFaster word =
-        let answer = Seq.fold reducer ImmutableStack.Empty word
+    let all (input:ImmutableStack<char>) =
+        input.All()
 
-        answer.All() |> List.length
+    let fullReduceFaster word =
+        Seq.fold reducer ImmutableStack.Empty word |> all |> List.length
 
     let part1Fast (input) =
         readLine input |> fullReduceFaster
