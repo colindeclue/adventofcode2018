@@ -75,7 +75,7 @@ module Day7 =
         stepOrder |> Seq.concat |> Seq.toArray |> String
 
     let part2 input =
-        let workers = 5
+        let workers = 500
         let offset = 60
         let preWork = makeWorkingStep offset
         let mutable goalWithSteps = readLines input |> Seq.map parseLine |> Seq.groupBy fst |> Seq.map groupSteps
