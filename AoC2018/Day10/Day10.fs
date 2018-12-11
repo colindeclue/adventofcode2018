@@ -104,13 +104,25 @@ module Day10 =
         let maxY = points |> List.maxBy snd |> snd
         ((uint64 maxX) - (uint64 minX)) * ((uint64 maxY) - (uint64 minY))
 
+    let memoize f =
+        let cache = ref Map.empty
+        fun x ->
+        match (!cache).TryFind(x) with
+            | Some res -> 
+                res
+            | None ->
+                let res = f x
+                cache := (!cache).Add(x,res)
+                res
+
     let part1 (input) =
         let mutable grid = readLines input |> Seq.map parseLine |> Seq.toList
         let mutable keepGoing = true
         let mutable numSecs = 0
+        let calc = memoize area
         while keepGoing do
             let grid' = tick grid
-            if (area grid) < (area grid') then
+            if (calc grid) < (calc grid') then
                 keepGoing <- false
             else 
                 grid <- grid'
@@ -120,6 +132,7 @@ module Day10 =
 
     let moreFunctional (input) =
         let grids = readLines input |> Seq.map parseLine |> Seq.toList |> generateGrids
-        let finalGrids = grids |> Seq.windowed 2 |> Seq.takeWhile (fun x -> (area x.[0]) > (area x.[1])) |> Seq.concat |> Seq.distinct |> Seq.toList
+        let calc = memoize area
+        let finalGrids = grids |> Seq.windowed 2 |> Seq.takeWhile (fun x -> (calc x.[0]) > (calc x.[1])) |> Seq.map Seq.last |> Seq.toList
         List.last finalGrids |> print
-        finalGrids.Length
+        finalGrids.Length + 1
