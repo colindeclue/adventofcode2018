@@ -15,11 +15,7 @@ module Day11 =
                 res
 
     let hundredsDigit (input:int) =
-        let reversed = string input |> Array.ofSeq |> Array.rev |> Seq.map (fun x -> int x - int '0') |> Seq.toArray
-        if reversed.Length < 3 then
-            0
-        else
-            reversed.[2]
+        input / 100 % 10
 
     let powerLevel (serialNumber:int) (point:int*int) =
         let rackId = fst point + 10
