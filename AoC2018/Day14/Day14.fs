@@ -1,5 +1,6 @@
 namespace AoC2018
 open System.Collections.Generic
+open System.Diagnostics
 
 module Day14 =
 
@@ -24,6 +25,8 @@ module Day14 =
         recipes.GetRange(count,10) |> Seq.toList
 
     let part2 (goal:int[]) =
+        let sw = new Stopwatch()
+        sw.Start()
         let mutable recipes = new List<int>([|3;7|])
         let mutable elfs = (0,1)
         let mutable found = false
@@ -41,7 +44,6 @@ module Day14 =
                     let otherCheck = recipes.GetRange(recipeLength-goal.Length-2,goal.Length) |> Seq.toArray
                     found <- otherCheck = goal
                     offset <- -2
-            if recipeLength % 10000 = 0 then
-                recipeLength |> printfn "%A"
-        recipes.GetRange(9,5) |> Seq.toList |> printfn "%A"
+        sw.Stop()
+        sw.ElapsedMilliseconds |> printfn "%A"
         recipes.Count - goal.Length + offset
