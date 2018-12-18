@@ -130,7 +130,7 @@ module Day15 =
                             | None -> 10000000000.0
                         if newCost < theCostSoFar then
                             costSoFar <- costSoFar.Add (next,newCost)
-                            let priority =  newCost + ((float next.y) / (float maxY)) + ((float next.x) / (float maxX * 10.0))
+                            let priority =  newCost //+ ((float next.y) / (float maxY)) + ((float next.x) / (float maxX * 10.0))
                             let asNode = {cost=priority;square=next}
                             frontier.Add(asNode) |> ignore
                             cameFrom <- cameFrom.Add (next,current.square)
