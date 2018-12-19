@@ -235,3 +235,10 @@ module Day17 =
         let (grid,offset) = buildGrid bounds walls floors
         processWater (fst offset) grid
         grid |> Seq.concat |> Seq.countBy (fun c -> c = '~' || c = '|')
+
+    let part2 input =
+        let (floors,walls) = readLines input |> getFloorsAndWalls
+        let bounds = getBounds walls floors
+        let (grid,offset) = buildGrid bounds walls floors
+        processWater (fst offset) grid
+        grid |> Seq.concat |> Seq.countBy (fun c -> c = '~')
