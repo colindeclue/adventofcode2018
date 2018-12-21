@@ -120,10 +120,10 @@ module Day19 =
 
     let part1 input =
         let instructions = readLines input |> Seq.map parseInstruction |> Seq.toArray
-        let mutable ip = 0
+        let mutable ip = 12
         let ipIndex = 3
         // let registers = [|1L;10551365L;1L;11L;10551364L;10551367L;|]
-        let registers = [|1L;0L;0L;0L;0L;0L|]
+        let registers = [|1L;2800L;1L;11L;2800L;10551367L|]
         while ip < instructions.Length do
             // if ip = 3 then
             //     registers.[4] <- registers.[5] + 1L
