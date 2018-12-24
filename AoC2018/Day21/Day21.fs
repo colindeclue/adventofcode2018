@@ -119,14 +119,15 @@ module Day21 =
     let doOp (registers:int[]) (instruction:string*int[]) =
         operations.[fst instruction] registers (snd instruction)
 
-    let part1 input maxCount valuesSeen (registers:int array) =
-        let mutable valuesSeen' = valuesSeen
+    let part1 input maxCount =
+        let mutable valuesSeen = Set.empty.Add(0)
         let mutable previous = 0
         let mutable count = 0
         let instructions = readLines input |> Seq.map parseInstruction |> Seq.toArray
         let mutable ip = 0
         let ipIndex = 5
         // let registers = [|1L;10551365L;1L;11L;10551364L;10551367L;|]
+        let registers = [|0;0;0;0;0;0|]
         while count < maxCount do
             registers.[ipIndex] <- ip
             let instruction = instructions.[ip]
@@ -135,11 +136,11 @@ module Day21 =
                 if not (Set.contains registers.[4] valuesSeen) then
                     count <- count + 1
                     previous <- registers.[4]
-                    valuesSeen' <- valuesSeen'.Add(registers.[4])
+                    valuesSeen <- valuesSeen.Add(registers.[4])
                 else
                     "FOUND" |> printfn "%A"
                     count <- maxCount
             // registers |> printfn "%A"
             ip <-registers.[ipIndex] + 1
         previous |> printfn "%A"
-        (registers,valuesSeen')
+        (registers,valuesSeen)
