@@ -4,17 +4,17 @@ open System.Collections.Generic
 
 module Day22 =
     // 0 is none, 1 is climbing, 2 is tortch
-    type InRegion = {point:int*int;region:int;tool:int}
+    type InRegion = {point:int*int;region:int;mutable tool:int}
 
     // 0 is none, 1 is climbing, 2 is torch
     [<CustomComparison; StructuralEquality>]
-    type Node = {cost:int;point:InRegion}
+    type Node = {cost:int;point:InRegion;distance:int;parent:Option<Node>}
                     interface IComparable<Node> with
                                 member this.CompareTo other =
                                     if this.cost <> other.cost then
                                         compare this.cost other.cost
                                     else
-                                        compare this.point.tool other.point.tool
+                                        compare this.point other.point
                     interface IComparable with
                         member this.CompareTo(obj: obj) =
                             match obj with
@@ -37,8 +37,31 @@ module Day22 =
           f g i j
       g
 
-    let goal = (10,10)
-    let depth = 510
+    // let goal = (10,10)
+    // let depth = 510
+
+    let goal = (5,746)
+    let depth = 4002
+
+    let buildGrid (depth:int) (maxX:int) (maxY:int) (extra:int) =
+        let asList = new List<(int*int)*int>()
+        let grid = Array.init (maxY + extra + 1) (fun i -> (Array.create (maxX + extra + 1) -1))
+        for y = 0 to maxY + extra do
+            for x = 0 to maxX + extra do
+                if x = 0 && y = 0 then
+                    grid.[y].[x] <- 0
+                elif x = maxX && y = maxY then
+                    grid.[y].[x] <- 0
+                elif x = 0 then
+                    grid.[y].[x] <- ((y * 48271) + depth) % 20183
+                elif y = 0 then
+                    grid.[y].[x] <- ((x * 16807) + depth) % 20183
+                else
+                    let left = grid.[y].[x - 1]
+                    let right = grid.[y - 1].[x]
+                    grid.[y].[x] <- ((left * right) + depth) % 20183                
+                asList.Add((x,y),grid.[y].[x])
+        grid,asList
 
     let getErosionIndex r (x:int) (y:int) =
         if (x,y) = goal then
@@ -62,12 +85,12 @@ module Day22 =
                     yield (x',y')
         }
 
-    let printRegion (yMax:int) (xMax:int) =
+    let printRegion (yMax:int) (xMax:int) (regions:Map<(int*int),int>) =
         let grid = Array.init (yMax + 1) (fun i -> (Array.create (xMax + 1) '#'))
         let mutable sum = 0
         for y = 0 to yMax do
             for x = 0 to xMax do
-            let region = memoed x y % 3
+            let region = Map.find (x,y) regions
             sum <- sum + region
             match region with
             | 2 ->
@@ -91,7 +114,7 @@ module Day22 =
     let getNeighbors (point:int*int) =
         let x = fst point
         let y = snd point
-        let mutable points = [(x + 1, y);(x,y+1)]
+        let mutable points = [(x,y+1);(x + 1, y)]
         if x > 0 then
             points <- (x-1,y)::points
         if y > 0 then
@@ -112,6 +135,7 @@ module Day22 =
             let newPoint = point
             if regions.ContainsKey newPoint then
                 let newRegion = Map.find newPoint regions
+                // out <- {point=newPoint;region=newRegion;tool=current.tool}::out
                 let newTools = allowedTools.[newRegion]
                 if newTools.[0] = current.tool || newTools.[1] = current.tool then
                     out <- {point=newPoint;region=newRegion;tool=current.tool}::out
@@ -119,65 +143,88 @@ module Day22 =
                     let possibleTools = Set.intersect (Set.ofSeq allowedTools.[current.region]) (Set.ofSeq newTools)
                     for tool in possibleTools do // I think just one
                         out <- {point=newPoint;region=newRegion;tool=tool}::out
-        out |> printfn "%A"
         out
 
     let distance (point1:int*int) (point2:int*int) =
-        (abs (fst point1) - (fst point2)) + (abs (snd point2) - (snd point2))
+        (abs ((fst point1) - (fst point2))) + (abs ((snd point1) - (snd point2)))
 
-    let getPath (regions:Map<(int*int),int>) (start:int*int) (goal:int*int) =
+    let rec findGoal (regions:Map<(int*int),int>) (current:InRegion) (goal:int*int) (path:InRegion list) =
+        if current.point = goal then
+            [path]
+        else
+            let mutable out = List.empty<InRegion list>
+            for neighbor in getNeighborSpaces current regions do
+                if not (List.contains neighbor path) then
+                    out <- List.append (findGoal regions neighbor goal path) out
+            out
+
+    let pathScore (path:InRegion list) =
+        let moves = path.Length
+        let changes = Seq.windowed 2 path |> Seq.filter (fun rs -> rs.[0].tool <> rs.[1].tool) |> Seq.length
+        moves + (changes * 7)
+
+    let getPathBasic (regions:Map<(int*int),int>) (start:int*int) (goal:int*int) =
         let startRegion = {point=start;region=0;tool=2}
-        let asNode = {cost=0;point=startRegion}
-        let frontier = new SortedSet<Node>([|asNode|])
-        let mutable cameFrom = [(startRegion,startRegion)] |> Map.ofList
-        let mutable costSoFar = [(startRegion,0)] |> Map.ofList
-        let mutable regionMap = [(start,startRegion)] |> Map.ofList
+        let asNode = {cost=0;point=startRegion;distance=0;parent=None}
+        let openList = new SortedSet<Node>([|asNode|])
+        let mutable closedList = [(startRegion,asNode)] |> Map.ofList
+        let mutable openListMap = [(startRegion,asNode)] |> Map.ofList
         let mutable keepGoing = true
         let mutable foundGoal = startRegion
         while keepGoing do
-            if frontier.Count = 0 then
+            let current = openList.Min
+            openList.Remove current |> ignore
+            if current.point.point = goal then
                 keepGoing <- false
-            else            
-                let current = frontier.Min
-                frontier.Remove current |> ignore
-                if current.point.point = goal then
-                    foundGoal <- current.point
-                    keepGoing <- false
-                else
-                    for next in getNeighborSpaces current.point regions do
-                        let previousCost =
-                            match costSoFar.TryFind current.point with
-                            | Some (c) -> c
-                            | None -> 0
-                        let mutable newCost = previousCost + 1
-                        if next.tool <> current.point.tool then
-                            newCost <- newCost + 7
-                        // if next.tool <> 2 && next.point = goal then
-                        //     newCost <- newCost + 7
-                        let theCostSoFar =
-                            match costSoFar.TryFind next with
-                            | Some (c) -> c
-                            | None -> Int32.MaxValue
-                        if newCost < theCostSoFar then
-                            costSoFar <- costSoFar.Add (next,newCost)
-                            let priority =  newCost + (distance next.point goal)
-                            let asNode = {cost=priority;point=next}
-                            frontier.Add(asNode) |> ignore
-                            cameFrom <- cameFrom.Add (next,current.point)
-                            regionMap <- regionMap.Add (next.point,next)
+                foundGoal <- current.point
+            else
+                for next in getNeighborSpaces current.point regions do
+                    let mutable newCost = current.distance + 1
+                    if next.tool <> current.point.tool then
+                        newCost <- newCost + 7
+                    if next.point = goal && next.tool <> 2 then
+                        next.tool <- 2
+                        newCost <- newCost + 7
+                    let priority = (distance next.point goal) + newCost
+                    let newNode = {cost=priority;point=next;distance=newCost;parent=Some current}
+                    let mutable inOpen = false
+                    let mutable inClose = false
+                    if Map.containsKey next openListMap then
+                        let opened = Map.find next openListMap
+                        inOpen <- opened.distance <= newNode.distance
+                    if Map.containsKey next closedList then
+                        let closed = Map.find next closedList
+                        inClose <- closed.distance <= newNode.distance
+                    if not (inOpen || inClose) then
+                        openList.Add(newNode) |> ignore
+            closedList <- closedList.Add(current.point, current)
 
-        let mutable current = foundGoal
+        let mutable maxX = 0;
+        let mutable maxY = 0;
         let mutable path = List.empty<InRegion>
-        if cameFrom.ContainsKey foundGoal then
-            while current <> startRegion do
-                let next = (Map.find current cameFrom)
-                path <- next::path
-                current <- next
+        if closedList.ContainsKey foundGoal then
+            let mutable currentNode = Map.find foundGoal closedList
+            while currentNode.point <> startRegion do
+                let next = currentNode.parent
+                if (fst next.Value.point.point) > maxX then
+                    maxX <- (fst next.Value.point.point)
+                if (snd next.Value.point.point) > maxY then
+                    maxY <- (snd next.Value.point.point)
+                path <- next.Value.point::path
+                currentNode <- next.Value
         path.Length |> printfn "%A"
-        path |> printfn "%A"
-        Map.find foundGoal costSoFar, Map.find goal regionMap
+        // path |> printfn "%A"
+        (maxX, maxY) |> printfn "%A"
+        foundGoal, (Map.find foundGoal closedList).distance
 
-    let part2 (depth:int) (endX:int) (endY:int) =
-        let regions = buildSeq (endX + 40) (endY + 40) |> Seq.map (fun p -> p,(((memoed (fst p) (snd p))) % 3))
-        let regionMap = regions |> Map.ofSeq
-        getPath regionMap (0,0) (endX,endY)
+    let part2 (depth:int) (maxX:int) (maxY:int) =
+        let grid,list = buildGrid depth maxX maxY 100
+        let regionMap = list |> Seq.map (fun g -> (fst g), (snd g) % 3) |> Map.ofSeq
+        regionMap |> printfn "%A"
+        getPathBasic regionMap (0,0) (maxX,maxY)
+
+    let part1New (depth:int) (maxX:int) (maxY:int) =
+        let grid,list = buildGrid depth maxX maxY 0
+        let regionMap = list |> Seq.map (fun g -> (fst g), (snd g) % 3) |> Map.ofSeq
+        printRegion maxX maxY regionMap
+        // grid |> Array.concat |> Array.map (fun e -> e % 3) |> Array.sum
